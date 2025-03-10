@@ -10,9 +10,7 @@ on:
         default: 'latest'
   push:
     branches:
-      - main
-  schedule:
-    - cron: '0 0 * * *'
+      - master
 
 env:
   REGISTRY: ghcr.io
@@ -43,6 +41,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: ${{ github.event.inputs.n8n_version }}
           # images: orrocyber/n8n-ga
 
       - name: Build and push Docker image
