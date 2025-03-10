@@ -7,7 +7,7 @@ on:
       n8n_version:
         description: 'n8n version to build'
         required: true
-        default: '1.50.2'
+        default: 'latest'
   push:
     branches:
       - main
@@ -44,6 +44,6 @@ jobs:
           # tags: ghcr.io/${{ github.repository_owner }}/n8n-ga:${{ matrix.n8n_version }}
           build-args: |
             N8N_VERSION=${{ github.event.inputs.n8n_version }}
-          tags: ghcr.io/${{ github.repository_owner }}/n8n-ga:${{ github.event.inputs.n8n_version }}
+          tags: ghcr.io/orrocyber/n8n-ga:${{ github.event.inputs.n8n_version }}
           push: true
           platforms: linux/amd64,linux/arm64/v8
