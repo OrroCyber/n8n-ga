@@ -15,6 +15,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  N8N_VERSION: ${{ github.event.inputs.n8n_version || 'latest' }}
 
 jobs:
   build-and-push-image:
@@ -44,7 +45,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ github.event.inputs.n8n_version }}
+          tags: ${{ env.N8N_VERSION }}
           # images: orrocyber/n8n-ga
 
       - name: Build and push Docker image
@@ -55,6 +56,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            N8N_VERSION=${{ github.event.inputs.n8n_version }}
+            N8N_VERSION=${{ env.N8N_VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64/v8
