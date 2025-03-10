@@ -8,9 +8,13 @@ on:
         description: 'n8n version to build'
         required: true
         default: 'latest'
-  push:
-    branches:
-      - master
+  # push:
+  #   branches:
+  #     - master
+  # schedule:
+  #   - cron: '0 0 * * *'
+  repository_dispatch:
+    types: [new-n8n-version]
 
 env:
   REGISTRY: ghcr.io

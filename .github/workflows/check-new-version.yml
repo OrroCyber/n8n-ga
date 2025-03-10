@@ -1,0 +1,67 @@
+name: Check for new n8n version
+
+on:
+  schedule:
+    - cron: '20 * * * *'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: n8n-ga
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.get_version.outputs.latest }}
+    steps:
+      - name: Get latest n8n version from Docker Hub
+        id: get_version
+        run: |
+          echo "Fetching latest version from Docker Hub..."
+          response=$(curl -sf "https://hub.docker.com/v2/repositories/n8nio/n8n/tags?page_size=20")
+          if [ $? -ne 0 ]; then
+            echo "::error::Failed to fetch tags from Docker Hub"
+            exit 1
+          fi
+
+          latest=$(echo "$response" | jq -r '.results[].name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' | sort -rV | head -n1)
+          
+          if [ -z "$latest" ]; then
+            echo "::error::No valid semantic version tags found"
+            exit 1
+          fi
+          
+          echo "Latest version found: $latest"
+          echo "::set-output name=latest::$latest"
+
+      - name: Check existing image in GHCR
+        id: check_image
+        run: |
+          tag=${{ steps.get_version.outputs.latest }}
+          image_path="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          echo "Checking for existing image: $image_path:$tag"
+          
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://${{ env.REGISTRY }}/v2/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/manifests/$tag")
+
+          if [ "$status_code" -eq 200 ]; then
+            echo "::notice::Image $tag already exists in registry"
+            echo "::set-output name=image_exists::true"
+          else
+            echo "::set-output name=image_exists::false"
+          fi
+
+      - name: Trigger build workflow if needed
+        if: steps.check_image.outputs.image_exists == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const tag = '${{ steps.get_version.outputs.latest }}';
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'new-n8n-version',
+              client_payload: { n8n_version: tag }
+            });
+            console.log(`Triggered build workflow for version ${tag}`);
